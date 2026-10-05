@@ -28,6 +28,8 @@
     phone: '<rect x="7" y="3" width="10" height="18" rx="2"/><path d="M11 18h2"/>',
     desktop: '<rect x="3" y="4" width="18" height="12" rx="2"/><path d="M9 20h6M12 16v4"/>',
     upload: '<path d="M12 16V5M7 9l5-5 5 5M5 20h14"/>',
+    whatsapp: '<path d="M4 20l1.3-4.2A8 8 0 1 1 8.3 18.8L4 20z"/><path d="M9 9.5c0 3 2.5 5.5 5.5 5.5l1-1.3-1.8-.9-.8.6a3.5 3.5 0 0 1-1.8-1.8l.6-.8-.9-1.8L9 9.5z"/>',
+    bolt: '<path d="M13 3L5 14h6l-1 7 8-11h-6l1-7z"/>',
     scan: '<path d="M4 8V5a1 1 0 0 1 1-1h3M16 4h3a1 1 0 0 1 1 1v3M20 16v3a1 1 0 0 1-1 1h-3M8 20H5a1 1 0 0 1-1-1v-3M4 12h16"/>',
   };
 
@@ -52,8 +54,17 @@
     return h('span', { class: 'logo', style: style }, settings.logoEmoji || '🍽️');
   };
 
+  /** Foto del producto sobre su emoji: si la imagen falta o falla, queda el emoji. */
+  UI.photo = function (product, el) {
+    if (product.image) {
+      const img = h('img', { src: product.image, alt: '', loading: 'lazy', decoding: 'async', onerror: () => img.remove() });
+      el.appendChild(img);
+    }
+    return el;
+  };
+
   UI.thumb = function (product, size) {
-    return h('span', { class: 'thumb', style: { width: size + 'px', height: size + 'px', fontSize: Math.round(size * 0.52) + 'px' } }, product.emoji);
+    return UI.photo(product, h('span', { class: 'thumb', style: { width: size + 'px', height: size + 'px', fontSize: Math.round(size * 0.52) + 'px' } }, product.emoji));
   };
 
   const TAGS = { popular: ['★ Popular', 'tag-popular'], nuevo: ['Nuevo', 'tag-nuevo'], picante: ['🌶 Picante', 'tag-picante'], veggie: ['🌱 Veggie', 'tag-veggie'] };
@@ -121,6 +132,17 @@
     // Si el control ya es un <label> (switch) no se anida otro label.
     const wrapper = input.tagName === 'LABEL' ? 'div' : 'label';
     return h(wrapper, { class: 'field' }, h('span', { class: 'field-label' }, label), input, hint ? h('span', { class: 'field-hint' }, hint) : null);
+  };
+
+  /** Tarjeta de contacto del vendedor (WhatsApp con mensaje prellenado). */
+  UI.ctaCard = function () {
+    const C = g.Config || {};
+    return h(
+      'div',
+      { class: 'card cta-card' },
+      h('div', null, h('b', null, '¿Querés una carta así para tu local?'), h('p', { class: 'muted small' }, 'La dejo lista con tu marca, tus platos y tu QR.')),
+      h('a', { class: 'btn btn-wa', href: H.whatsappUrl(C.sellerWhatsapp, C.ctaMessage), target: '_blank', rel: 'noopener' }, UI.icon('whatsapp', 18), 'Quiero mi carta')
+    );
   };
 
   UI.empty = function (emoji, title, text, action) {

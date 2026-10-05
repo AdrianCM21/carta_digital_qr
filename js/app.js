@@ -11,6 +11,7 @@
     cart: { layout: 'customer', fn: S.cart },
     checkout: { layout: 'customer', fn: S.checkout },
     confirm: { layout: 'customer', fn: S.confirm },
+    live: { layout: 'live', fn: S.live },
     admin: { layout: 'admin', fn: S.adminDashboard },
     'admin/products': { layout: 'admin', fn: S.adminProducts },
     'admin/orders': { layout: 'admin', fn: S.adminOrders },
@@ -25,6 +26,7 @@
     _layout: null,
     _tok: 0,
     _leave: [],
+    embed: new URLSearchParams(location.search).get('embed') === '1',
 
     go(route) {
       const target = '#/' + route;
@@ -47,7 +49,8 @@
       App.settings = s;
       applyTheme();
       g.Demo.syncBar();
-      if (rerender) await renderRoute();
+      // En la vista en vivo los iframes se actualizan solos (evento storage); no hay que recargarlos.
+      if (rerender && App.path !== 'live') await renderRoute();
     },
     async updateSettings(patch) {
       await App.applySettings(await api.saveSettings(patch), true);
@@ -90,14 +93,14 @@
     // Al cambiar entre cliente y admin se ajusta la vista (celular para la carta, PC para el panel).
     if (App._layout !== def.layout) {
       App._layout = def.layout;
-      App.view = def.layout === 'admin' ? 'desktop' : 'mobile';
+      App.view = def.layout === 'customer' ? 'mobile' : 'desktop';
     }
     App.path = path;
     const stage = document.getElementById('stage');
     stage.dataset.view = App.view;
     stage.dataset.layout = def.layout;
     const content = def.layout === 'admin' ? S.adminShell(path, node, App.settings) : node;
-    H.clear(stage).appendChild(h('div', { class: 'device' }, h('div', { class: 'screen screen-' + def.layout + ' enter' }, content)));
+    H.clear(stage).appendChild(def.layout === 'live' ? node : h('div', { class: 'device' }, h('div', { class: 'screen screen-' + def.layout + ' enter' }, content)));
     if (scrollTop && scroller()) scroller().scrollTop = scrollTop;
     g.Demo.syncBar();
   }
@@ -105,7 +108,13 @@
   async function init() {
     App.settings = await api.getSettings();
     applyTheme();
-    g.Demo.renderBar(document.getElementById('demobar'));
+    if (App.embed) {
+      document.documentElement.classList.add('embed');
+      // Si el presentador cambia paleta/moneda/negocio en la ventana principal, este iframe lo refleja.
+      api.onExternalChange('settings', async () => App.applySettings(await api.getSettings(), true));
+    } else {
+      g.Demo.renderBar(document.getElementById('demobar'));
+    }
     g.addEventListener('hashchange', renderRoute);
     if (!location.hash) location.hash = '#/qr';
     else renderRoute();

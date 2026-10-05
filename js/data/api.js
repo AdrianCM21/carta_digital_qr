@@ -6,7 +6,7 @@
 (function (g) {
   const Data = (g.Data = g.Data || {});
   const store = g.Helpers.storage;
-  const PREFIX = 'cartaqr:v1:';
+  const PREFIX = 'cartaqr:v2:';
 
   const load = (key, fallback) => store.get(PREFIX + key, fallback);
   const save = (key, value) => store.set(PREFIX + key, value);
@@ -185,6 +185,13 @@
       seedAll();
       return true;
     }),
+  };
+
+  /** Avisa cuando OTRA ventana/iframe cambia `key` (evento storage). Devuelve la función para desuscribirse. */
+  api.onExternalChange = function (key, fn) {
+    const handler = (e) => (e.key === PREFIX + key || e.key === null) && fn();
+    g.addEventListener('storage', handler);
+    return () => g.removeEventListener('storage', handler);
   };
 
   Data.api = api;

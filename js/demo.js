@@ -26,6 +26,7 @@
   const SCREENS = {
     Cliente: [['qr', 'QR'], ['menu', 'Carta'], ['cart', 'Carrito'], ['checkout', 'Checkout'], ['confirm', 'Confirmación']],
     Admin: [['admin', 'Panel'], ['admin/products', 'Productos'], ['admin/orders', 'Pedidos'], ['admin/brand', 'Marca'], ['admin/qr', 'QR mesas']],
+    Presentar: [['live', '⚡ En vivo']],
   };
 
   async function goTo(route) {
@@ -60,7 +61,10 @@
       goTo('qr');
     } }, UI.icon('refresh', 16), 'Reiniciar demo');
 
-    H.clear(bar).append(h('div', { class: 'db-brand' }, h('span', { class: 'db-logo' }, '▣'), h('b', null, 'Demo')), screenBtns('Cliente'), screenBtns('Admin'), palettes, group('Negocio', [business, currency]), group('Vista', view), reset);
+    const C = g.Config || {};
+    const cta = h('a', { class: 'db-cta', href: H.whatsappUrl(C.sellerWhatsapp, C.ctaMessage), target: '_blank', rel: 'noopener' }, UI.icon('whatsapp', 16), 'Quiero mi carta');
+
+    H.clear(bar).append(h('div', { class: 'db-brand' }, h('span', { class: 'db-logo' }, '▣'), h('b', null, 'Demo')), cta, screenBtns('Cliente'), screenBtns('Admin'), screenBtns('Presentar'), palettes, group('Negocio', [business, currency]), group('Vista', view), reset);
     Demo.syncBar();
   };
 

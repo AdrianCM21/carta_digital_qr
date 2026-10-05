@@ -2,8 +2,8 @@
 (function (g) {
   const H = (g.Helpers = g.Helpers || {});
 
-  /** Lee una imagen, la reduce a `maxSize` px y devuelve un data URL (para guardarla liviana). */
-  H.imageToDataUrl = function (file, maxSize) {
+  /** Lee una imagen, la reduce a `maxSize` px y devuelve un data URL (para guardarla liviana). `mime` opcional (ej. image/jpeg). */
+  H.imageToDataUrl = function (file, maxSize, mime) {
     return new Promise((resolve, reject) => {
       if (!file || !/^image\//.test(file.type)) return reject(new Error('El archivo no es una imagen'));
       const reader = new FileReader();
@@ -17,7 +17,7 @@
           c.width = Math.max(1, Math.round(img.width * k));
           c.height = Math.max(1, Math.round(img.height * k));
           c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
-          resolve(c.toDataURL('image/png'));
+          resolve(c.toDataURL(mime || 'image/png', 0.82));
         };
         img.src = reader.result;
       };

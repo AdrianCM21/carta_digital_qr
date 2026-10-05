@@ -11,6 +11,12 @@
   const topbar = (title, backRoute, right) =>
     h('div', { class: 'topbar' }, h('button', { class: 'icon-btn', type: 'button', 'aria-label': 'Volver', onclick: () => g.App.go(backRoute) }, UI.icon('back', 20)), h('h2', null, title), right || h('span', { class: 'topbar-spacer' }));
 
+  /** Texto del pedido para enviarlo por WhatsApp al local. */
+  function orderMessage(o, s) {
+    const lines = o.lines.map((l) => '• ' + l.qty + '× ' + l.name + ' — ' + H.money(l.price * l.qty) + (l.note ? ' (' + l.note + ')' : ''));
+    return ['*Pedido #' + o.id + '* · ' + s.name, 'Cliente: ' + o.customer, o.type === 'mesa' ? 'Mesa ' + o.table : 'Retiro en el local'].concat(lines, o.tip ? ['Propina: ' + H.money(o.tip)] : [], ['*Total: ' + H.money(o.total) + '* (' + o.payment + ')'], o.notes ? ['Nota: ' + o.notes] : []).join('\n');
+  }
+
   // ------------------------------------------------------------------ QR de entrada
   Screens.qr = async function () {
     const [s, table] = await Promise.all([api.getSettings(), api.getTable()]);
@@ -62,7 +68,7 @@
         h(
           'div',
           { class: 'pcard-media' },
-          UI.thumb(p, 92),
+          UI.thumb(p, 96),
           p.available ? h('button', { class: 'add-fab', type: 'button', 'aria-label': 'Agregar ' + p.name, onclick: async (e) => { e.stopPropagation(); cart = await api.addToCart({ productId: p.id, qty: 1 }); UI.toast(p.name + ' agregado'); renderBar(); } }, UI.icon('plus', 18)) : null
         )
       );
@@ -106,7 +112,7 @@
         body: h(
           'div',
           { class: 'psheet' },
-          h('div', { class: 'psheet-hero' }, h('span', null, p.emoji), h('button', { class: 'icon-btn sheet-close', type: 'button', 'aria-label': 'Cerrar', onclick: () => m.close() }, UI.icon('close', 18))),
+          UI.photo(p, h('div', { class: 'psheet-hero' }, h('span', null, p.emoji), h('button', { class: 'icon-btn sheet-close', type: 'button', 'aria-label': 'Cerrar', onclick: () => m.close() }, UI.icon('close', 18)))),
           h('div', { class: 'psheet-body' }, h('div', { class: 'psheet-tags' }, UI.tags(p)), h('h3', null, p.name), h('p', { class: 'muted' }, p.desc), h('div', { class: 'psheet-price' }, H.money(p.price)), UI.field('Aclaraciones para la cocina', noteInput), h('div', { class: 'psheet-actions' }, qtyBox, addBtn))
         ),
       });
@@ -253,6 +259,8 @@
   Screens.confirm = async function () {
     const order = await g.Demo.ensureOrder();
     const root = h('div', { class: 'page confirm' });
+    const settings = await api.getSettings();
+    const waBtn = settings.whatsapp ? h('a', { class: 'btn btn-wa btn-lg btn-block', href: H.whatsappUrl(settings.whatsapp, orderMessage(order, settings)), target: '_blank', rel: 'noopener' }, UI.icon('whatsapp', 20), 'Enviar pedido por WhatsApp') : null;
     const steps = [['new', 'Recibido', '📥'], ['preparing', 'Preparando', '👨‍🍳'], ['ready', 'Listo', '🛎️'], ['delivered', 'Entregado', '✅']];
     const tl = h('ol', { class: 'timeline' });
     let status = order.status;
@@ -288,6 +296,8 @@
           order.tip ? h('div', { class: 'srow' }, h('span', null, 'Propina'), h('span', null, H.money(order.tip))) : null,
           h('div', { class: 'srow total' }, h('span', null, 'Total · ' + order.payment), h('b', null, H.money(order.total)))
         ),
+        waBtn,
+        UI.ctaCard(),
         h('div', { class: 'confirm-actions' }, h('button', { class: 'btn btn-primary btn-block', type: 'button', onclick: () => g.App.go('menu') }, 'Pedir algo más'), h('button', { class: 'btn btn-ghost btn-block', type: 'button', onclick: () => g.App.go('admin/orders') }, 'Ver en el panel del negocio →'))
       )
     );

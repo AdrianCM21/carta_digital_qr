@@ -30,7 +30,7 @@
   ];
 
   // tags: popular | nuevo | picante | veggie
-  const P = (id, cat, name, desc, price, emoji, tags) => ({ id, cat, name, desc, price, emoji, tags: tags || [], available: true });
+  const P = (id, cat, name, desc, price, emoji, tags) => ({ id, cat, name, desc, price, emoji, image: 'img/products/' + id + '.jpg', tags: tags || [], available: true });
   const PRODUCTS = [
     P('chipa', 'entradas', 'Chipa guasu', 'Clásico paraguayo de choclo, queso y cebolla, horneado en el momento.', 22000, '🌽', ['popular', 'veggie']),
     P('empanadas', 'entradas', 'Empanadas de carne (3 u.)', 'Masa casera, carne cortada a cuchillo, huevo y aceituna.', 24000, '🥟', ['popular']),
@@ -145,6 +145,7 @@
         address: 'Av. Mariscal López 1450, Asunción',
         hours: 'Abierto todos los días · 11:30 a 23:30',
         tables: 12,
+        whatsapp: (g.Config && g.Config.sellerWhatsapp) || '',
       },
       categories: CATEGORIES,
       products: products,

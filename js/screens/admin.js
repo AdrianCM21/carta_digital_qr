@@ -95,7 +95,8 @@
         { class: 'card' },
         h('div', { class: 'card-head' }, h('h3', null, 'Últimos pedidos'), h('a', { class: 'link', href: '#/admin/orders' }, 'Ver todos →')),
         h('div', { class: 'table-list' }, st.recent.map((o) => h('div', { class: 'trow' }, h('b', null, '#' + o.id), h('span', null, o.customer), h('span', { class: 'muted' }, o.type === 'mesa' ? 'Mesa ' + o.table : 'Retiro'), h('span', { class: 'muted' }, H.timeAgo(o.createdAt)), h('b', null, H.money(o.total)), UI.statusBadge(o.status))))
-      )
+      ),
+      UI.ctaCard()
     );
   };
 
@@ -145,17 +146,29 @@
       const price = h('input', { type: 'number', min: '0', step: H.currencies[cur].decimals ? '0.01' : '500', value: H.fromBase(d.price) });
       const emoji = h('input', { type: 'text', value: d.emoji, maxlength: '4', class: 'emoji-in' });
       const avail = h('input', { type: 'checkbox', checked: d.available });
+      let image = d.image || null;
+      const photoBox = h('div', { class: 'photo-edit' });
+      const drawPhoto = () => {
+        H.clear(photoBox).append(
+          UI.thumb({ emoji: emoji.value || '🍽️', image: image }, 64),
+          h('label', { class: 'btn btn-ghost btn-sm upload-btn' }, UI.icon('upload', 16), image ? 'Cambiar foto' : 'Subir foto', h('input', { type: 'file', accept: 'image/*', class: 'sr-only', onchange: async (e) => {
+            try { image = await H.imageToDataUrl(e.target.files[0], 640, 'image/jpeg'); drawPhoto(); } catch (ex) { err.textContent = ex.message; }
+          } })),
+          image ? h('button', { class: 'btn btn-ghost btn-sm', type: 'button', onclick: () => { image = null; drawPhoto(); } }, 'Quitar') : null
+        );
+      };
       const tagBoxes = [['popular', 'Popular'], ['nuevo', 'Nuevo'], ['picante', 'Picante'], ['veggie', 'Veggie']].map((t) => ({ key: t[0], el: h('input', { type: 'checkbox', checked: d.tags.indexOf(t[0]) !== -1 }), label: t[1] }));
       const err = h('p', { class: 'form-error', role: 'alert' });
+      drawPhoto();
       const m = UI.modal({
         title: isNew ? 'Nuevo producto' : 'Editar producto',
-        body: h('div', { class: 'form-grid' }, UI.field('Nombre', name), UI.field('Descripción', desc), h('div', { class: 'two' }, UI.field('Categoría', cat), UI.field('Precio (' + H.currencies[cur].code + ')', price)), h('div', { class: 'two' }, UI.field('Emoji', emoji), UI.field('Disponible', h('label', { class: 'switch' }, avail, h('span', { class: 'slider' })))), h('div', { class: 'field' }, h('span', { class: 'field-label' }, 'Etiquetas'), h('div', { class: 'checks' }, tagBoxes.map((t) => h('label', { class: 'check' }, t.el, t.label)))), err),
+        body: h('div', { class: 'form-grid' }, UI.field('Nombre', name), UI.field('Descripción', desc), h('div', { class: 'two' }, UI.field('Categoría', cat), UI.field('Precio (' + H.currencies[cur].code + ')', price)), h('div', { class: 'field' }, h('span', { class: 'field-label' }, 'Foto'), photoBox), h('div', { class: 'two' }, UI.field('Emoji (si no hay foto)', emoji), UI.field('Disponible', h('label', { class: 'switch' }, avail, h('span', { class: 'slider' })))), h('div', { class: 'field' }, h('span', { class: 'field-label' }, 'Etiquetas'), h('div', { class: 'checks' }, tagBoxes.map((t) => h('label', { class: 'check' }, t.el, t.label)))), err),
         footer: [
           h('button', { class: 'btn btn-ghost', type: 'button', onclick: () => m.close() }, 'Cancelar'),
           h('button', { class: 'btn btn-primary', type: 'button', onclick: async () => {
             if (!name.value.trim()) return (err.textContent = 'El nombre es obligatorio.');
             if (!(parseFloat(price.value) >= 0) || price.value === '') return (err.textContent = 'Ingresá un precio válido.');
-            await api.saveProduct({ id: p ? p.id : undefined, name: name.value.trim(), desc: desc.value.trim(), cat: cat.value, price: price.value === String(H.fromBase(d.price)) ? d.price : H.toBase(price.value), emoji: emoji.value.trim() || '🍽️', available: avail.checked, tags: tagBoxes.filter((t) => t.el.checked).map((t) => t.key) });
+            await api.saveProduct({ id: p ? p.id : undefined, name: name.value.trim(), desc: desc.value.trim(), cat: cat.value, price: price.value === String(H.fromBase(d.price)) ? d.price : H.toBase(price.value), emoji: emoji.value.trim() || '🍽️', image: image, available: avail.checked, tags: tagBoxes.filter((t) => t.el.checked).map((t) => t.key) });
             m.close();
             UI.toast(isNew ? 'Producto creado' : 'Cambios guardados');
             reload();
@@ -189,12 +202,24 @@
       const m = UI.modal({
         title: 'Pedido #' + o.id,
         body: h('div', { class: 'order-detail' }, h('div', { class: 'od-meta' }, UI.statusBadge(o.status), h('span', { class: 'muted' }, H.fmtTime(o.createdAt) + ' · ' + H.timeAgo(o.createdAt))), h('p', null, h('b', null, o.customer), o.phone ? ' · ' + o.phone : ''), h('p', { class: 'muted' }, (o.type === 'mesa' ? 'En mesa ' + o.table : 'Retiro en el local') + ' · Pago: ' + o.payment), h('div', { class: 'summary' }, o.lines.map((l) => h('div', { class: 'srow' }, h('span', null, l.qty + '× ' + l.name + (l.note ? ' — “' + l.note + '”' : '')), h('span', null, H.money(l.price * l.qty)))), o.tip ? h('div', { class: 'srow' }, h('span', null, 'Propina'), h('span', null, H.money(o.tip))) : null, h('div', { class: 'srow total' }, h('span', null, 'Total'), h('b', null, H.money(o.total)))), o.notes ? h('p', { class: 'od-notes' }, '💬 ' + o.notes) : null),
-        footer: NEXT[o.status] ? [h('button', { class: 'btn btn-ghost', type: 'button', onclick: () => m.close() }, 'Cerrar'), h('button', { class: 'btn btn-primary', type: 'button', onclick: () => { m.close(); advance(o); } }, NEXT[o.status][1])] : [h('button', { class: 'btn btn-ghost', type: 'button', onclick: () => m.close() }, 'Cerrar')],
+        footer: [
+          h('button', { class: 'btn btn-ghost', type: 'button', onclick: () => m.close() }, 'Cerrar'),
+          o.phone ? h('a', { class: 'btn btn-wa', target: '_blank', rel: 'noopener', href: H.whatsappUrl(o.phone, 'Hola ' + o.customer.split(' ')[0] + '! ' + (o.status === 'ready' ? 'Tu pedido #' + o.id + ' ya está listo 🛎️' : 'Recibimos tu pedido #' + o.id + ' y ya lo estamos preparando 👨‍🍳') + ' — ' + g.App.settings.name) }, UI.icon('whatsapp', 16), 'Avisar') : null,
+          NEXT[o.status] ? h('button', { class: 'btn btn-primary', type: 'button', onclick: () => { m.close(); advance(o); } }, NEXT[o.status][1]) : null,
+        ],
       });
     }
 
-    async function draw() {
+    const known = new Set();
+    async function draw(announce) {
       const orders = await api.getOrders();
+      const fresh = orders.filter((o) => announce && !known.has(o.id));
+      orders.forEach((o) => known.add(o.id));
+      if (fresh.length) {
+        H.beep();
+        UI.toast('Nuevo pedido #' + fresh[0].id + ' · ' + fresh[0].customer);
+      }
+      const freshIds = new Set(fresh.map((o) => o.id));
       H.clear(board);
       Data.statusFlow.forEach((status) => {
         let list = orders.filter((o) => o.status === status);
@@ -212,7 +237,7 @@
                 ? list.map((o) =>
                     h(
                       'article',
-                      { class: 'ocard', tabindex: '0', onclick: () => openDetail(o), onkeydown: (e) => e.key === 'Enter' && openDetail(o) },
+                      { class: 'ocard' + (freshIds.has(o.id) ? ' ocard-new' : ''), tabindex: '0', onclick: () => openDetail(o), onkeydown: (e) => e.key === 'Enter' && openDetail(o) },
                       h('div', { class: 'ocard-top' }, h('b', null, '#' + o.id), h('span', { class: 'muted small' }, H.timeAgo(o.createdAt))),
                       h('div', { class: 'ocard-who' }, o.customer, h('span', { class: 'pill' }, o.type === 'mesa' ? 'Mesa ' + o.table : 'Retiro')),
                       h('p', { class: 'ocard-items' }, o.lines.map((l) => l.qty + '× ' + l.name).join(' · ')),
@@ -228,6 +253,8 @@
 
     root.append(pageHead('Pedidos', 'Los pedidos nuevos llegan acá en cuanto el cliente confirma.', h('a', { class: 'btn btn-ghost', href: '#/menu' }, UI.icon('store', 16), 'Hacer un pedido de prueba')), board);
     await draw();
+    // Pedidos que llegan desde otra ventana (ej.: la carta del cliente en la vista en vivo).
+    g.App.onLeave(api.onExternalChange('orders', () => draw(true)));
     return root;
   };
 
@@ -301,7 +328,7 @@
           h('section', { class: 'card form-sec' }, h('h3', null, 'Identidad'), text('name', 'Nombre del negocio', { maxlength: '40' }), text('tagline', 'Descripción corta', { maxlength: '60' }), h('div', { class: 'field' }, h('span', { class: 'field-label' }, 'Logo'), logoEl, h('label', { class: 'btn btn-ghost btn-sm upload-btn' }, UI.icon('upload', 16), 'Subir mi logo', file), s.logoImage ? h('button', { class: 'btn btn-ghost btn-sm', type: 'button', onclick: () => save({ logoImage: null }).then(() => g.App.rerender()) }, 'Quitar imagen') : null, err)),
           h('section', { class: 'card form-sec' }, h('h3', null, 'Colores'), palEl, h('p', { class: 'muted small' }, 'Cada paleta cambia botones, fondos y acentos de toda la carta.')),
           h('section', { class: 'card form-sec' }, h('h3', null, 'Moneda'), curEl, h('p', { class: 'muted small' }, 'Los precios se guardan una vez y se muestran convertidos (demo con cotización fija).')),
-          h('section', { class: 'card form-sec' }, h('h3', null, 'Local'), text('address', 'Dirección'), text('hours', 'Horario'), UI.field('Cantidad de mesas', h('input', { type: 'number', min: '1', max: '60', value: s.tables, oninput: (e) => save({ tables: H.clamp(parseInt(e.target.value, 10) || 1, 1, 60) }) }))),
+          h('section', { class: 'card form-sec' }, h('h3', null, 'Local'), text('address', 'Dirección'), text('hours', 'Horario'), UI.field('WhatsApp del local', h('input', { type: 'tel', value: s.whatsapp || '', placeholder: '595981123456', oninput: (e) => save({ whatsapp: e.target.value }) }), 'Recibe los pedidos que el cliente envía por WhatsApp (formato internacional, solo números).'), UI.field('Cantidad de mesas', h('input', { type: 'number', min: '1', max: '60', value: s.tables, oninput: (e) => save({ tables: H.clamp(parseInt(e.target.value, 10) || 1, 1, 60) }) }))),
           h('section', { class: 'card form-sec' }, h('h3', null, 'Probar otra identidad'), h('p', { class: 'muted small' }, 'Ejemplos de cómo se vería para distintos tipos de negocio.'), presetEl)
         ),
         h('aside', { class: 'brand-side' }, h('h3', { class: 'side-title' }, 'Vista previa'), h('div', { class: 'phone-mini' }, preview))
