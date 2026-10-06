@@ -77,13 +77,11 @@ a { color: inherit; }
 .db-tab.active { background: var(--primary); color: var(--primary-ink); font-weight: 700; }
 .db-tour { border: 1px solid #4a443d; background: transparent; color: #fff; padding: 6px 12px; border-radius: 8px; font-size: 13px; font-weight: 600; white-space: nowrap; }
 .db-tour:hover { background: #2a2520; }
-.db-cta { display: inline-flex; align-items: center; gap: 6px; background: #25d366; color: #06361a; font-weight: 700; font-size: 13px; padding: 7px 12px; border-radius: 9px; text-decoration: none; white-space: nowrap; }
-.db-cta:hover { filter: brightness(1.08); }
 .db-opts-btn { display: inline-flex; align-items: center; gap: 6px; border: 1px solid #4a443d; background: transparent; color: #fff; border-radius: 9px; padding: 7px 12px; font-size: 13px; font-weight: 600; white-space: nowrap; }
 .db-opts-btn:hover, .db-opts-btn[aria-expanded='true'] { background: #2a2520; }
 @media (max-width: 640px) {
-  .db-brand b, .db-cta span, .db-opts-btn span { display: none; }
-  .db-cta, .db-opts-btn { padding: 8px 10px; }
+  .db-brand b, .db-opts-btn span { display: none; }
+  .db-opts-btn { padding: 8px 10px; }
   .db-steps, .db-tabs { padding-left: 4px; border: 0; gap: 4px; }
   .db-tab { padding: 7px 8px; font-size: 13px; }
 }
@@ -518,7 +516,7 @@ body.has-coach .stage { height: calc(100dvh - var(--bar-h) - var(--coach-h)); }
   *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; scroll-behavior: auto !important; }
 }
 
-/* ---------- 9. Fotos, WhatsApp, vista en vivo y modo embebido ---------- */
+/* ---------- 9. Fotos, vista en vivo y modo embebido ---------- */
 .thumb { position: relative; overflow: hidden; }
 .thumb img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
 .psheet-hero { overflow: hidden; }
@@ -528,10 +526,6 @@ body.has-coach .stage { height: calc(100dvh - var(--bar-h) - var(--coach-h)); }
 .pcard-media .thumb { border-radius: 18px; }
 .photo-edit { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
 .photo-edit .upload-btn { margin: 0; }
-.btn-wa { background: #25d366; color: #06361a; border-color: transparent; }
-.btn-wa:hover { filter: brightness(.94); }
-.cta-card { display: flex; align-items: center; justify-content: space-between; gap: 14px; flex-wrap: wrap; background: linear-gradient(135deg, var(--primary-soft), var(--surface)); border-color: color-mix(in srgb, var(--primary) 30%, var(--border)); }
-.cta-card b { font-family: var(--font-head); font-size: 16px; }
 .ocard-new { animation: newOrder 2.4s ease both; }
 @keyframes newOrder { 0% { transform: translateY(-14px) scale(.96); opacity: 0; box-shadow: 0 0 0 0 color-mix(in srgb, var(--primary) 60%, transparent); } 15% { transform: none; opacity: 1; } 30%, 70% { box-shadow: 0 0 0 5px color-mix(in srgb, var(--primary) 35%, transparent); border-color: var(--primary); } 100% { box-shadow: 0 0 0 0 transparent; } }
 
@@ -552,7 +546,7 @@ body.has-coach .stage { height: calc(100dvh - var(--bar-h) - var(--coach-h)); }
 .embed .demobar { display: none; }
 .embed .stage { margin-top: 0; height: 100dvh; padding: 0; }
 .embed .device { max-width: none !important; max-height: none !important; border: 0 !important; border-radius: 0 !important; box-shadow: none; }
-.embed .admin-view-site, .embed .cta-card, .embed .confirm-actions .btn-ghost, .embed .page-actions .btn-ghost[href='#/menu'] { display: none; }
+.embed .admin-view-site, .embed .confirm-actions .btn-ghost, .embed .page-actions .btn-ghost[href='#/menu'] { display: none; }
 
 /* ---------- 10. Pantalla "Valor" ---------- */
 .pitch { max-width: 1120px; margin: 0 auto; padding: 28px 24px 56px; display: flex; flex-direction: column; gap: 22px; }

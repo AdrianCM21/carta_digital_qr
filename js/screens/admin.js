@@ -95,8 +95,7 @@
         { class: 'card' },
         h('div', { class: 'card-head' }, h('h3', null, 'Últimos pedidos'), h('a', { class: 'link', href: '#/admin/orders' }, 'Ver todos →')),
         h('div', { class: 'table-list' }, st.recent.map((o) => h('div', { class: 'trow' }, h('b', null, '#' + o.id), h('span', null, o.customer), h('span', { class: 'muted' }, o.type === 'mesa' ? 'Mesa ' + o.table : 'Retiro'), h('span', { class: 'muted' }, H.timeAgo(o.createdAt)), h('b', null, H.money(o.total)), UI.statusBadge(o.status))))
-      ),
-      UI.ctaCard()
+      )
     );
   };
 
@@ -204,7 +203,6 @@
         body: h('div', { class: 'order-detail' }, h('div', { class: 'od-meta' }, UI.statusBadge(o.status), h('span', { class: 'muted' }, H.fmtTime(o.createdAt) + ' · ' + H.timeAgo(o.createdAt))), h('p', null, h('b', null, o.customer), o.phone ? ' · ' + o.phone : ''), h('p', { class: 'muted' }, (o.type === 'mesa' ? 'En mesa ' + o.table : 'Retiro en el local') + ' · Pago: ' + o.payment), h('div', { class: 'summary' }, o.lines.map((l) => h('div', { class: 'srow' }, h('span', null, l.qty + '× ' + l.name + (l.note ? ' — “' + l.note + '”' : '')), h('span', null, H.money(l.price * l.qty)))), o.tip ? h('div', { class: 'srow' }, h('span', null, 'Propina'), h('span', null, H.money(o.tip))) : null, h('div', { class: 'srow total' }, h('span', null, 'Total'), h('b', null, H.money(o.total)))), o.notes ? h('p', { class: 'od-notes' }, '💬 ' + o.notes) : null),
         footer: [
           h('button', { class: 'btn btn-ghost', type: 'button', onclick: () => m.close() }, 'Cerrar'),
-          o.phone ? h('a', { class: 'btn btn-wa', target: '_blank', rel: 'noopener', href: H.whatsappUrl(o.phone, 'Hola ' + o.customer.split(' ')[0] + '! ' + (o.status === 'ready' ? 'Tu pedido #' + o.id + ' ya está listo 🛎️' : 'Recibimos tu pedido #' + o.id + ' y ya lo estamos preparando 👨‍🍳') + ' — ' + g.App.settings.name) }, UI.icon('whatsapp', 16), 'Avisar') : null,
           NEXT[o.status] ? h('button', { class: 'btn btn-primary', type: 'button', onclick: () => { m.close(); advance(o); } }, NEXT[o.status][1]) : null,
         ],
       });
@@ -328,7 +326,7 @@
           h('section', { class: 'card form-sec' }, h('h3', null, 'Identidad'), text('name', 'Nombre del negocio', { maxlength: '40' }), text('tagline', 'Descripción corta', { maxlength: '60' }), h('div', { class: 'field' }, h('span', { class: 'field-label' }, 'Logo'), logoEl, h('label', { class: 'btn btn-ghost btn-sm upload-btn' }, UI.icon('upload', 16), 'Subir mi logo', file), s.logoImage ? h('button', { class: 'btn btn-ghost btn-sm', type: 'button', onclick: () => save({ logoImage: null }).then(() => g.App.rerender()) }, 'Quitar imagen') : null, err)),
           h('section', { class: 'card form-sec' }, h('h3', null, 'Colores'), palEl, h('p', { class: 'muted small' }, 'Cada paleta cambia botones, fondos y acentos de toda la carta.')),
           h('section', { class: 'card form-sec' }, h('h3', null, 'Moneda'), curEl, h('p', { class: 'muted small' }, 'Los precios se guardan una vez y se muestran convertidos (demo con cotización fija).')),
-          h('section', { class: 'card form-sec' }, h('h3', null, 'Local'), text('address', 'Dirección'), text('hours', 'Horario'), UI.field('WhatsApp del local', h('input', { type: 'tel', value: s.whatsapp || '', placeholder: '595981123456', oninput: (e) => save({ whatsapp: e.target.value }) }), 'Recibe los pedidos que el cliente envía por WhatsApp (formato internacional, solo números).'), UI.field('Cantidad de mesas', h('input', { type: 'number', min: '1', max: '60', value: s.tables, oninput: (e) => save({ tables: H.clamp(parseInt(e.target.value, 10) || 1, 1, 60) }) }))),
+          h('section', { class: 'card form-sec' }, h('h3', null, 'Local'), text('address', 'Dirección'), text('hours', 'Horario'), UI.field('Cantidad de mesas', h('input', { type: 'number', min: '1', max: '60', value: s.tables, oninput: (e) => save({ tables: H.clamp(parseInt(e.target.value, 10) || 1, 1, 60) }) }))),
           h('section', { class: 'card form-sec' }, h('h3', null, 'Probar otra identidad'), h('p', { class: 'muted small' }, 'Ejemplos de cómo se vería para distintos tipos de negocio.'), presetEl)
         ),
         h('aside', { class: 'brand-side' }, h('h3', { class: 'side-title' }, 'Vista previa'), h('div', { class: 'phone-mini' }, preview))

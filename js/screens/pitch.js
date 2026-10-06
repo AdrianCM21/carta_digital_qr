@@ -110,8 +110,7 @@
       { class: 'pitch' },
       h('header', { class: 'pitch-hero' }, h('span', { class: 'tag tag-nuevo' }, 'Por qué conviene'), h('h1', null, 'Tu carta siempre al día. Sin imprimir.'), h('p', null, 'Menos gasto en papel, más ventas por plato y pedidos sin errores. Probalo con tus números.')),
       h('div', { class: 'pitch-grid' }, calc, tries),
-      h('div', { class: 'benefits' }, BENEFITS.map((b) => h('div', { class: 'card benefit' }, h('span', { class: 'benefit-emoji' }, b[0]), h('b', null, b[1]), h('p', { class: 'muted small' }, b[2])))),
-      UI.ctaCard()
+      h('div', { class: 'benefits' }, BENEFITS.map((b) => h('div', { class: 'card benefit' }, h('span', { class: 'benefit-emoji' }, b[0]), h('b', null, b[1]), h('p', { class: 'muted small' }, b[2]))))
     );
   };
 })(window);

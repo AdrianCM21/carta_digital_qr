@@ -145,7 +145,6 @@
         address: 'Av. Mariscal López 1450, Asunción',
         hours: 'Abierto todos los días · 11:30 a 23:30',
         tables: 12,
-        whatsapp: (g.Config && g.Config.sellerWhatsapp) || '',
       },
       categories: CATEGORIES,
       products: products,

@@ -17,7 +17,7 @@ El QR de las mesas apunta a la URL donde esté publicada.
 
 ## Antes de publicar
 
-Editá `js/config.js` con tu nombre y tu número de WhatsApp (formato internacional, solo dígitos). Lo usan el botón *Quiero mi carta* y, por defecto, el WhatsApp del local de la demo (donde llegan los pedidos enviados desde la confirmación).
+En `js/config.js` podés ajustar los precios de tu servicio (`monthlyPrice`, `setupPrice`) que usa la pantalla *Cuánto te deja*.
 
 ## Cómo se usa la demo
 
@@ -26,8 +26,7 @@ Al abrirla aparece una **pantalla de inicio**: elegís el tipo de local (cambia 
 - **▶ Ver el recorrido (2 min):** 6 pasos guiados con «Siguiente» y «Atrás» (también con las flechas del teclado): QR → carta con fotos → pedido en vivo (celular + panel) → control de la carta → marca → cuánto te deja. Carrito, checkout y confirmación se arman solos.
 - **Explorar por mi cuenta:** pestañas Cliente / Negocio / En vivo / Valor para moverse libremente.
 
-Siempre disponibles arriba a la derecha:
-- **Quiero mi carta:** abre WhatsApp contigo con un mensaje prellenado (configurá tu número en `js/config.js`).
+Siempre disponible arriba a la derecha:
 - **Opciones:** tipo de local, paleta, moneda, vista Móvil/PC, ir a cualquier pantalla suelta y Reiniciar demo.
 
 Las fotos son de Wikimedia Commons (licencias libres, ver `img/CREDITS.md`); reemplazalas por las de cada cliente o subilas desde *Productos*.
@@ -45,7 +44,7 @@ js/data/api.js          ÚNICA capa de acceso a datos
 js/ui/components.js     componentes compartidos (modal, toast, stepper, íconos…)
 js/screens/customer.js  QR, carta, carrito, checkout, confirmación
 js/screens/admin.js     panel, productos, pedidos, marca, QR de mesas
-js/config.js            tu nombre y WhatsApp (editar)
+js/config.js            precios de tu servicio (editar)
 img/products/           fotos de los platos (nombre = id del producto) + CREDITS.md con licencias
 js/tour.js              pasos del recorrido guiado
 js/screens/start.js     pantalla de inicio

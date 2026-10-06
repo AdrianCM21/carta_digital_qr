@@ -47,8 +47,6 @@
     g.App.explore(route);
   }
 
-  const ctaUrl = () => H.whatsappUrl((g.Config || {}).sellerWhatsapp, (g.Config || {}).ctaMessage);
-
   // ------------------------------------------------------------------ Barra superior
   let optsOpen = false;
 
@@ -63,7 +61,7 @@
       parts.push(h('nav', { class: 'db-tabs', 'aria-label': 'Secciones' }, TABS.map((t) => h('button', { type: 'button', class: 'db-tab' + (t[2](App.path) ? ' active' : ''), onclick: () => jump(t[1]) }, t[0]))), h('button', { type: 'button', class: 'db-tour', onclick: () => App.startTour() }, '▶ Recorrido'));
     }
 
-    parts.push(h('span', { class: 'db-spacer' }), h('a', { class: 'db-cta', href: ctaUrl(), target: '_blank', rel: 'noopener', 'aria-label': 'Quiero mi carta' }, UI.icon('whatsapp', 16), h('span', null, 'Quiero mi carta')), h('button', { type: 'button', class: 'db-opts-btn', 'aria-expanded': String(optsOpen), 'aria-controls': 'opts', onclick: toggleOpts }, UI.icon('sliders', 16), h('span', null, 'Opciones')));
+    parts.push(h('span', { class: 'db-spacer' }), h('button', { type: 'button', class: 'db-opts-btn', 'aria-expanded': String(optsOpen), 'aria-controls': 'opts', onclick: toggleOpts }, UI.icon('sliders', 16), h('span', null, 'Opciones')));
     H.clear(bar).append(...parts);
   }
 
@@ -85,7 +83,7 @@
         { class: 'coach-actions' },
         h('button', { class: 'coach-link', type: 'button', onclick: () => App.explore(st.route) }, 'Explorar libre'),
         h('button', { class: 'btn btn-ghost btn-sm', type: 'button', onclick: () => (App.step ? App.goStep(App.step - 1) : App.go('start')) }, '← Atrás'),
-        last ? h('a', { class: 'btn btn-wa btn-sm', href: ctaUrl(), target: '_blank', rel: 'noopener' }, UI.icon('whatsapp', 16), 'Quiero mi carta') : h('button', { class: 'btn btn-primary btn-sm', type: 'button', onclick: () => App.goStep(App.step + 1) }, 'Siguiente →')
+        last ? h('button', { class: 'btn btn-primary btn-sm', type: 'button', onclick: () => App.go('start') }, 'Volver al inicio') : h('button', { class: 'btn btn-primary btn-sm', type: 'button', onclick: () => App.goStep(App.step + 1) }, 'Siguiente →')
       )
     );
   }
