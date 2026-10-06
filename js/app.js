@@ -15,11 +15,10 @@
     confirm: { layout: 'customer', fn: S.confirm },
     live: { layout: 'live', fn: S.live },
     value: { layout: 'pitch', fn: S.value },
-    admin: { layout: 'admin', fn: S.adminDashboard },
-    'admin/products': { layout: 'admin', fn: S.adminProducts },
     'admin/orders': { layout: 'admin', fn: S.adminOrders },
-    'admin/brand': { layout: 'admin', fn: S.adminBrand },
-    'admin/qr': { layout: 'admin', fn: S.adminQR },
+    'admin/products': { layout: 'admin', fn: S.adminProducts },
+    'admin/local': { layout: 'admin', fn: S.adminLocal },
+    'admin/summary': { layout: 'admin', fn: S.adminSummary },
   };
   // Estas pantallas ocupan todo el escenario, sin marco de celular/escritorio.
   const BARE = { live: true, start: true };

@@ -27,12 +27,12 @@
   // Pantallas sueltas (panel de Opciones). Carrito, checkout y confirmación se preparan solos.
   const SCREENS = [
     ['Cliente', [['qr', 'Escaneo del QR'], ['menu', 'Carta'], ['cart', 'Carrito'], ['checkout', 'Finalizar pedido'], ['confirm', 'Pedido confirmado']]],
-    ['Negocio', [['admin', 'Resumen'], ['admin/orders', 'Pedidos del local'], ['admin/products', 'Mi carta'], ['admin/brand', 'Personalizar'], ['admin/qr', 'Códigos QR']]],
+    ['Negocio', [['admin/orders', 'Pedidos del local'], ['admin/products', 'Mi carta'], ['admin/local', 'Mi local'], ['admin/summary', 'Resumen']]],
     ['Para vender', [['live', 'Vista en vivo'], ['value', 'Cuánto te deja']]],
   ];
   const TABS = [
     ['Cliente', 'qr', (p) => ['qr', 'menu', 'cart', 'checkout', 'confirm'].indexOf(p) !== -1],
-    ['Negocio', 'admin', (p) => p.indexOf('admin') === 0],
+    ['Negocio', 'admin/orders', (p) => p.indexOf('admin') === 0],
     ['En vivo', 'live', (p) => p === 'live'],
     ['Valor', 'value', (p) => p === 'value'],
   ];

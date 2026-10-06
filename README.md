@@ -43,7 +43,7 @@ js/data/seed.js         datos de ejemplo (carta, pedidos, identidades)
 js/data/api.js          ÚNICA capa de acceso a datos
 js/ui/components.js     componentes compartidos (modal, toast, stepper, íconos…)
 js/screens/customer.js  QR, carta, carrito, checkout, confirmación
-js/screens/admin.js     panel, productos, pedidos, marca, QR de mesas
+js/screens/admin.js     admin: Pedidos, Mi carta, Mi local (marca + mesas y QR) y Resumen
 js/config.js            precios de tu servicio (editar)
 img/products/           fotos de los platos (nombre = id del producto) + CREDITS.md con licencias
 js/tour.js              pasos del recorrido guiado

@@ -8,14 +8,12 @@
   const Screens = (g.Screens = g.Screens || {});
 
   const NAV = [
-    ['admin', 'dashboard', 'Panel'],
-    ['admin/products', 'box', 'Productos'],
     ['admin/orders', 'receipt', 'Pedidos'],
-    ['admin/brand', 'brush', 'Mi marca'],
-    ['admin/qr', 'qr', 'Códigos QR'],
+    ['admin/products', 'box', 'Mi carta'],
+    ['admin/local', 'brush', 'Mi local'],
   ];
 
-  const pageHead = (title, sub, actions) => h('div', { class: 'page-head' }, h('div', null, h('h1', null, title), sub ? h('p', { class: 'muted' }, sub) : null), actions ? h('div', { class: 'page-actions' }, actions) : null);
+  const pageHead = (title, sub, actions) => h('div', { class: 'page-head' }, h('div', null, h('h1', null, title), sub ? (sub instanceof Node ? sub : h('p', { class: 'muted' }, sub)) : null), actions ? h('div', { class: 'page-actions' }, actions) : null);
 
   // ------------------------------------------------------------------ Estructura (sidebar)
   function brandBlock(s) {
@@ -27,6 +25,8 @@
   };
 
   Screens.adminShell = function (path, node, settings) {
+    // El resumen es una vista secundaria de Pedidos: mantiene "Pedidos" marcado en el menú.
+    const current = path === 'admin/summary' ? 'admin/orders' : path;
     return h(
       'div',
       { class: 'admin' },
@@ -34,14 +34,14 @@
         'aside',
         { class: 'admin-side' },
         brandBlock(settings),
-        h('nav', { class: 'admin-nav' }, NAV.map((n) => h('a', { href: '#/' + n[0], class: path === n[0] ? 'active' : '' }, UI.icon(n[1], 18), h('span', null, n[2])))),
+        h('nav', { class: 'admin-nav' }, NAV.map((n) => h('a', { href: '#/' + n[0], class: current === n[0] ? 'active' : '' }, UI.icon(n[1], 18), h('span', null, n[2])))),
         h('a', { class: 'admin-view-site', href: '#/menu' }, UI.icon('store', 18), h('span', null, 'Ver carta del cliente'))
       ),
       h('div', { class: 'admin-main' }, h('div', { class: 'admin-content' }, node))
     );
   };
 
-  // ------------------------------------------------------------------ Panel
+  // ------------------------------------------------------------------ Resumen (vista secundaria)
   function kpi(label, value, delta, icon) {
     const d = delta == null ? null : h('span', { class: 'delta ' + (delta >= 0 ? 'up' : 'down') }, (delta >= 0 ? '▲ ' : '▼ ') + Math.abs(delta) + '% vs ayer');
     return h('div', { class: 'card kpi' }, h('div', { class: 'kpi-ico' }, UI.icon(icon, 20)), h('div', { class: 'kpi-body' }, h('span', { class: 'kpi-label' }, label), h('b', { class: 'kpi-value' }, value), d || h('span', { class: 'delta muted' }, ' ')));
@@ -69,13 +69,13 @@
     return h('div', { class: 'chart', role: 'img', 'aria-label': 'Ventas de los últimos 7 días', html: '<svg viewBox="0 0 ' + W + ' ' + Ht + '" width="100%" preserveAspectRatio="xMidYMid meet">' + '<line class="axis" x1="0" x2="' + W + '" y1="' + (Ht - pad.b) + '" y2="' + (Ht - pad.b) + '"/>' + bars + '</svg>' });
   }
 
-  Screens.adminDashboard = async function () {
-    const [st, s] = await Promise.all([api.getStats(), api.getSettings()]);
+  Screens.adminSummary = async function () {
+    const st = await api.getStats();
     const topMax = st.top.length ? st.top[0].qty : 1;
     return h(
       'div',
       null,
-      pageHead('Panel', 'Resumen de hoy en ' + s.name, h('a', { class: 'btn btn-primary', href: '#/admin/orders' }, UI.icon('receipt', 16), 'Ver pedidos')),
+      pageHead('Resumen', 'Cómo viene el negocio. Los últimos 7 días y lo más pedido.', h('a', { class: 'btn btn-ghost', href: '#/admin/orders' }, UI.icon('back', 16), 'Volver a pedidos')),
       h(
         'div',
         { class: 'kpis' },
@@ -89,23 +89,17 @@
         { class: 'dash-grid' },
         h('section', { class: 'card' }, h('div', { class: 'card-head' }, h('h3', null, 'Ventas · últimos 7 días'), h('span', { class: 'muted small' }, H.money(st.days.reduce((a, d) => a + d.sales, 0)) + ' en total')), salesChart(st.days)),
         h('section', { class: 'card' }, h('div', { class: 'card-head' }, h('h3', null, 'Más pedidos')), h('ul', { class: 'toplist' }, st.top.map((t, i) => h('li', null, h('span', { class: 'rank' }, i + 1), h('span', { class: 'top-emoji' }, t.emoji), h('div', { class: 'top-info' }, h('b', null, t.name), h('div', { class: 'meter' }, h('span', { style: { width: Math.round((t.qty / topMax) * 100) + '%' } }))), h('span', { class: 'top-qty' }, t.qty + ' u.')))))
-      ),
-      h(
-        'section',
-        { class: 'card' },
-        h('div', { class: 'card-head' }, h('h3', null, 'Últimos pedidos'), h('a', { class: 'link', href: '#/admin/orders' }, 'Ver todos →')),
-        h('div', { class: 'table-list' }, st.recent.map((o) => h('div', { class: 'trow' }, h('b', null, '#' + o.id), h('span', null, o.customer), h('span', { class: 'muted' }, o.type === 'mesa' ? 'Mesa ' + o.table : 'Retiro'), h('span', { class: 'muted' }, H.timeAgo(o.createdAt)), h('b', null, H.money(o.total)), UI.statusBadge(o.status))))
       )
     );
   };
 
-  // ------------------------------------------------------------------ Productos
+
+  // ------------------------------------------------------------------ Mi carta
   Screens.adminProducts = async function () {
     const [products, cats] = await Promise.all([api.getProducts(), api.getCategories()]);
-    const catName = {};
-    cats.forEach((c) => (catName[c.id] = c));
-    const f = { q: '', cat: 'all' };
-    const listEl = h('div', { class: 'table-list prod-list' });
+    const f = { q: '' };
+    const listEl = h('div', { class: 'prod-groups' });
+    const sub = h('p', { class: 'muted' });
     const root = h('div');
 
     async function reload() {
@@ -115,23 +109,40 @@
       draw();
     }
 
+    function row(p) {
+      const cur = H.getCurrency();
+      const unit = H.currencies[cur];
+      const priceIn = h('input', { type: 'number', min: '0', step: unit.decimals ? '0.1' : '500', value: H.fromBase(p.price), 'aria-label': 'Precio de ' + p.name, onchange: async (e) => {
+        const v = parseFloat(e.target.value);
+        if (!(v >= 0) || e.target.value === '') return (e.target.value = H.fromBase(p.price));
+        if (String(v) === String(H.fromBase(p.price))) return;
+        await api.saveProduct({ id: p.id, price: H.toBase(v) });
+        UI.toast('Precio de ' + p.name + ' actualizado');
+        reload();
+      } });
+      return h(
+        'div',
+        { class: 'prow' + (p.available ? '' : ' off') },
+        h('div', { class: 'prow-main' }, UI.thumb(p, 44), h('b', null, p.name)),
+        h('label', { class: 'price-in' }, h('span', null, unit.symbol), priceIn),
+        h('label', { class: 'avail' }, h('span', { class: 'switch' }, h('input', { type: 'checkbox', checked: p.available, onchange: async (e) => { await api.setAvailability(p.id, e.target.checked); UI.toast(p.name + (e.target.checked ? ' disponible' : ' agotado en la carta')); reload(); } }), h('span', { class: 'slider' })), h('span', { class: 'avail-label' }, p.available ? 'Disponible' : 'Agotado')),
+        h('button', { class: 'icon-btn', type: 'button', 'aria-label': 'Editar ' + p.name, onclick: () => openForm(p) }, UI.icon('edit', 17))
+      );
+    }
+
     function draw() {
       H.clear(listEl);
+      const out = products.filter((p) => !p.available).length;
+      sub.textContent = products.length + ' platos' + (out ? ' · ' + out + ' agotado' + (out > 1 ? 's' : '') : '');
       const q = f.q.trim().toLowerCase();
-      const rows = products.filter((p) => (f.cat === 'all' || p.cat === f.cat) && (!q || p.name.toLowerCase().indexOf(q) !== -1));
-      if (!rows.length) return listEl.appendChild(UI.empty('📦', 'Sin productos', 'No hay productos que coincidan con el filtro.'));
-      rows.forEach((p) =>
-        listEl.appendChild(
-          h(
-            'div',
-            { class: 'trow prow' + (p.available ? '' : ' off') },
-            h('div', { class: 'prow-main' }, UI.thumb(p, 44), h('div', null, h('b', null, p.name), h('span', { class: 'muted small' }, catName[p.cat] ? catName[p.cat].name : ''))),
-            h('b', { class: 'prow-price' }, H.money(p.price)),
-            h('label', { class: 'switch', title: p.available ? 'Disponible' : 'Agotado' }, h('input', { type: 'checkbox', checked: p.available, 'aria-label': 'Disponible: ' + p.name, onchange: async (e) => { await api.setAvailability(p.id, e.target.checked); UI.toast(p.name + (e.target.checked ? ' disponible' : ' marcado como agotado')); reload(); } }), h('span', { class: 'slider' })),
-            h('div', { class: 'row-actions' }, h('button', { class: 'icon-btn', type: 'button', 'aria-label': 'Editar ' + p.name, onclick: () => openForm(p) }, UI.icon('edit', 17)), h('button', { class: 'icon-btn danger', type: 'button', 'aria-label': 'Eliminar ' + p.name, onclick: () => UI.confirm({ title: 'Eliminar producto', message: '¿Eliminar "' + p.name + '" de la carta? Esta acción no se puede deshacer.', danger: true, confirmLabel: 'Eliminar', onConfirm: async () => { await api.deleteProduct(p.id); UI.toast('Producto eliminado'); reload(); } }) }, UI.icon('trash', 17)))
-          )
-        )
-      );
+      let any = false;
+      cats.forEach((c) => {
+        const items = products.filter((p) => p.cat === c.id && (!q || p.name.toLowerCase().indexOf(q) !== -1));
+        if (!items.length) return;
+        any = true;
+        listEl.appendChild(h('section', { class: 'card card-flush cat-group' }, h('header', { class: 'cat-head' }, h('b', null, c.emoji + ' ' + c.name), h('span', { class: 'kcount' }, items.length)), items.map(row)));
+      });
+      if (!any) listEl.appendChild(UI.empty('🔍', 'Sin resultados', 'Probá con otra palabra.'));
     }
 
     function openForm(p) {
@@ -144,7 +155,6 @@
       const cat = h('select', null, cats.map((c) => h('option', { value: c.id, selected: c.id === d.cat }, c.name)));
       const price = h('input', { type: 'number', min: '0', step: H.currencies[cur].decimals ? '0.01' : '500', value: H.fromBase(d.price) });
       const emoji = h('input', { type: 'text', value: d.emoji, maxlength: '4', class: 'emoji-in' });
-      const avail = h('input', { type: 'checkbox', checked: d.available });
       let image = d.image || null;
       const photoBox = h('div', { class: 'photo-edit' });
       const drawPhoto = () => {
@@ -160,35 +170,49 @@
       const err = h('p', { class: 'form-error', role: 'alert' });
       drawPhoto();
       const m = UI.modal({
-        title: isNew ? 'Nuevo producto' : 'Editar producto',
-        body: h('div', { class: 'form-grid' }, UI.field('Nombre', name), UI.field('Descripción', desc), h('div', { class: 'two' }, UI.field('Categoría', cat), UI.field('Precio (' + H.currencies[cur].code + ')', price)), h('div', { class: 'field' }, h('span', { class: 'field-label' }, 'Foto'), photoBox), h('div', { class: 'two' }, UI.field('Emoji (si no hay foto)', emoji), UI.field('Disponible', h('label', { class: 'switch' }, avail, h('span', { class: 'slider' })))), h('div', { class: 'field' }, h('span', { class: 'field-label' }, 'Etiquetas'), h('div', { class: 'checks' }, tagBoxes.map((t) => h('label', { class: 'check' }, t.el, t.label)))), err),
+        title: isNew ? 'Nuevo plato' : 'Editar plato',
+        body: h(
+          'div',
+          { class: 'form-grid' },
+          UI.field('Nombre', name),
+          h('div', { class: 'two' }, UI.field('Precio (' + H.currencies[cur].code + ')', price), UI.field('Categoría', cat)),
+          h('div', { class: 'field' }, h('span', { class: 'field-label' }, 'Foto'), photoBox),
+          h('details', { class: 'more' }, h('summary', null, 'Más opciones'), h('div', { class: 'form-grid' }, UI.field('Descripción', desc), UI.field('Emoji (si no hay foto)', emoji), h('div', { class: 'field' }, h('span', { class: 'field-label' }, 'Etiquetas'), h('div', { class: 'checks' }, tagBoxes.map((t) => h('label', { class: 'check' }, t.el, t.label)))))),
+          err
+        ),
         footer: [
+          isNew ? null : h('button', { class: 'btn btn-ghost foot-left danger-text', type: 'button', onclick: () => { m.close(); UI.confirm({ title: 'Eliminar plato', message: '¿Eliminar "' + p.name + '" de la carta? Esta acción no se puede deshacer.', danger: true, confirmLabel: 'Eliminar', onConfirm: async () => { await api.deleteProduct(p.id); UI.toast('Plato eliminado'); reload(); } }); } }, UI.icon('trash', 16), 'Eliminar'),
           h('button', { class: 'btn btn-ghost', type: 'button', onclick: () => m.close() }, 'Cancelar'),
           h('button', { class: 'btn btn-primary', type: 'button', onclick: async () => {
             if (!name.value.trim()) return (err.textContent = 'El nombre es obligatorio.');
             if (!(parseFloat(price.value) >= 0) || price.value === '') return (err.textContent = 'Ingresá un precio válido.');
-            await api.saveProduct({ id: p ? p.id : undefined, name: name.value.trim(), desc: desc.value.trim(), cat: cat.value, price: price.value === String(H.fromBase(d.price)) ? d.price : H.toBase(price.value), emoji: emoji.value.trim() || '🍽️', image: image, available: avail.checked, tags: tagBoxes.filter((t) => t.el.checked).map((t) => t.key) });
+            await api.saveProduct({ id: p ? p.id : undefined, name: name.value.trim(), desc: desc.value.trim(), cat: cat.value, price: price.value === String(H.fromBase(d.price)) ? d.price : H.toBase(price.value), emoji: emoji.value.trim() || '🍽️', image: image, available: d.available, tags: tagBoxes.filter((t) => t.el.checked).map((t) => t.key) });
             m.close();
-            UI.toast(isNew ? 'Producto creado' : 'Cambios guardados');
+            UI.toast(isNew ? 'Plato creado' : 'Cambios guardados');
             reload();
-          } }, isNew ? 'Crear producto' : 'Guardar cambios'),
+          } }, isNew ? 'Crear plato' : 'Guardar'),
         ],
       });
     }
 
     root.append(
-      pageHead('Productos', products.length + ' productos en la carta', h('button', { class: 'btn btn-primary', type: 'button', onclick: () => openForm(null) }, UI.icon('plus', 16), 'Nuevo producto')),
-      h('div', { class: 'toolbar' }, h('div', { class: 'searchbar searchbar-flat' }, UI.icon('search', 18), h('input', { type: 'search', placeholder: 'Buscar producto…', 'aria-label': 'Buscar producto', oninput: (e) => { f.q = e.target.value; draw(); } })), h('select', { 'aria-label': 'Filtrar por categoría', onchange: (e) => { f.cat = e.target.value; draw(); } }, [h('option', { value: 'all' }, 'Todas las categorías')].concat(cats.map((c) => h('option', { value: c.id }, c.name))))),
-      h('section', { class: 'card card-flush' }, listEl)
+      pageHead('Mi carta', sub, h('button', { class: 'btn btn-primary', type: 'button', onclick: () => openForm(null) }, UI.icon('plus', 16), 'Nuevo plato')),
+      h('div', { class: 'searchbar searchbar-flat' }, UI.icon('search', 18), h('input', { type: 'search', placeholder: 'Buscar plato…', 'aria-label': 'Buscar plato', oninput: (e) => { f.q = e.target.value; draw(); } })),
+      listEl
     );
     draw();
     return root;
   };
 
-  // ------------------------------------------------------------------ Pedidos
+  // ------------------------------------------------------------------ Pedidos (inicio del admin)
   Screens.adminOrders = async function () {
     const root = h('div');
+    const strip = h('div', { class: 'today-strip' });
     const board = h('div', { class: 'kanban' });
+    const doneCount = h('span', { class: 'kcount' });
+    const doneList = h('div', { class: 'table-list' });
+    const done = h('details', { class: 'delivered card card-flush' }, h('summary', null, 'Entregados hoy ', doneCount), doneList);
+    const COLS = ['new', 'preparing', 'ready'];
     const NEXT = { new: ['preparing', 'Empezar a preparar'], preparing: ['ready', 'Marcar listo'], ready: ['delivered', 'Marcar entregado'] };
 
     async function advance(o) {
@@ -210,7 +234,7 @@
 
     const known = new Set();
     async function draw(announce) {
-      const orders = await api.getOrders();
+      const [orders, st] = await Promise.all([api.getOrders(), api.getStats()]);
       const fresh = orders.filter((o) => announce && !known.has(o.id));
       orders.forEach((o) => known.add(o.id));
       if (fresh.length) {
@@ -218,16 +242,20 @@
         UI.toast('Nuevo pedido #' + fresh[0].id + ' · ' + fresh[0].customer);
       }
       const freshIds = new Set(fresh.map((o) => o.id));
+
+      H.clear(strip).append(
+        h('div', { class: 'stat' }, h('span', null, 'Ventas de hoy'), h('b', null, H.money(st.today.sales))),
+        h('div', { class: 'stat' }, h('span', null, 'Pedidos de hoy'), h('b', null, st.today.orders))
+      );
+
       H.clear(board);
-      Data.statusFlow.forEach((status) => {
-        let list = orders.filter((o) => o.status === status);
-        const total = list.length;
-        if (status === 'delivered') list = list.slice(0, 6);
+      COLS.forEach((status) => {
+        const list = orders.filter((o) => o.status === status);
         board.appendChild(
           h(
             'section',
             { class: 'kcol kcol-' + status },
-            h('header', null, h('span', { class: 'kdot' }), h('b', null, Data.statusLabels[status]), h('span', { class: 'kcount' }, total)),
+            h('header', null, h('span', { class: 'kdot' }), h('b', null, Data.statusLabels[status]), h('span', { class: 'kcount' }, list.length)),
             h(
               'div',
               { class: 'kbody' },
@@ -239,7 +267,7 @@
                       h('div', { class: 'ocard-top' }, h('b', null, '#' + o.id), h('span', { class: 'muted small' }, H.timeAgo(o.createdAt))),
                       h('div', { class: 'ocard-who' }, o.customer, h('span', { class: 'pill' }, o.type === 'mesa' ? 'Mesa ' + o.table : 'Retiro')),
                       h('p', { class: 'ocard-items' }, o.lines.map((l) => l.qty + '× ' + l.name).join(' · ')),
-                      h('div', { class: 'ocard-foot' }, h('b', null, H.money(o.total)), NEXT[o.status] ? h('button', { class: 'btn btn-sm btn-primary', type: 'button', onclick: (e) => { e.stopPropagation(); advance(o); } }, NEXT[o.status][1]) : h('span', { class: 'muted small' }, '✓ Completado'))
+                      h('div', { class: 'ocard-foot' }, h('b', null, H.money(o.total)), h('button', { class: 'btn btn-sm btn-primary', type: 'button', onclick: (e) => { e.stopPropagation(); advance(o); } }, NEXT[o.status][1]))
                     )
                   )
                 : h('p', { class: 'muted small kempty' }, 'Sin pedidos')
@@ -247,35 +275,69 @@
           )
         );
       });
+
+      const t0 = H.startOfDay(Date.now());
+      const delivered = orders.filter((o) => o.status === 'delivered' && o.createdAt >= t0);
+      doneCount.textContent = delivered.length;
+      H.clear(doneList).append(...delivered.map((o) => h('div', { class: 'drow', tabindex: '0', onclick: () => openDetail(o), onkeydown: (e) => e.key === 'Enter' && openDetail(o) }, h('b', null, '#' + o.id), h('span', null, o.customer), h('span', { class: 'muted' }, H.fmtTime(o.createdAt)), h('b', null, H.money(o.total)))));
+      if (!delivered.length) doneList.appendChild(h('p', { class: 'muted small kempty' }, 'Todavía no hay pedidos entregados hoy.'));
     }
 
-    root.append(pageHead('Pedidos', 'Los pedidos nuevos llegan acá en cuanto el cliente confirma.', h('a', { class: 'btn btn-ghost', href: '#/menu' }, UI.icon('store', 16), 'Hacer un pedido de prueba')), board);
+    root.append(pageHead('Pedidos', 'Los pedidos nuevos llegan acá en cuanto el cliente confirma.', h('a', { class: 'link', href: '#/admin/summary' }, 'Ver resumen →')), strip, board, done);
     await draw();
     // Pedidos que llegan desde otra ventana (ej.: la carta del cliente en la vista en vivo).
     g.App.onLeave(api.onExternalChange('orders', () => draw(true)));
     return root;
   };
 
-  // ------------------------------------------------------------------ Marca
+  // ------------------------------------------------------------------ Mi local (marca + mesas y QR)
   const LOGOS = ['🔥', '🍽️', '🌿', '⚓', '🍇', '🥂', '☕', '🍕', '🍔', '🌮', '🍣', '🥐', '🍷', '🧁'];
+  const CHECK_DEFAULT = { logo: true, color: true, menu: true, qr: false };
+  const CHECKS = [['logo', 'Poné tu logo y nombre'], ['color', 'Elegí tu color'], ['menu', 'Cargá tus platos'], ['qr', 'Imprimí los QR de tus mesas']];
 
-  Screens.adminBrand = async function () {
+  Screens.adminLocal = async function () {
     let s = await api.getSettings();
+    let table = Math.min(await api.getTable(), s.tables);
     const products = (await api.getProducts()).slice(0, 3);
     const preview = h('div', { class: 'brand-preview' });
     const palEl = h('div', { class: 'palette-grid' });
     const logoEl = h('div', { class: 'logo-grid' });
-    const curEl = h('div', { class: 'chips' });
+    const curEl = h('div', { class: 'chips chips-wrap-inline' });
+    const checkEl = h('section', { class: 'card checklist' });
+    const tableWrap = h('div');
+    const qrHead = h('div', { class: 'qr-head' });
+    const qrBox = h('div', { class: 'qr-box' });
+    const qrLabel = h('div', { class: 'qrp-table' });
     const err = h('p', { class: 'form-error', role: 'alert' });
 
+    const checks = () => Object.assign({}, CHECK_DEFAULT, s.checklist);
+
     async function save(patch, rerender) {
-      s = await api.saveSettings(patch);
+      const cl = checks();
+      if ('palette' in patch) cl.color = true;
+      if ('name' in patch || 'logoEmoji' in patch || 'logoImage' in patch) cl.logo = true;
+      s = await api.saveSettings(Object.assign({}, patch, { checklist: cl }));
       g.App.applySettings(s, rerender);
       if (!rerender) {
         drawPreview();
         drawChoices();
+        drawChecklist();
         Screens.refreshAdminBrand(s);
       }
+    }
+    async function setCheck(key, value) {
+      s = await api.saveSettings({ checklist: Object.assign(checks(), { [key]: value }) });
+      drawChecklist();
+    }
+
+    function drawChecklist() {
+      const c = checks();
+      const n = CHECKS.filter((x) => c[x[0]]).length;
+      H.clear(checkEl).append(
+        h('div', { class: 'card-head' }, h('h3', null, n === CHECKS.length ? '✓ Todo listo para publicar' : 'Primeros pasos'), h('span', { class: 'muted small' }, n + ' de ' + CHECKS.length)),
+        h('div', { class: 'meter' }, h('span', { style: { width: (n / CHECKS.length) * 100 + '%' } })),
+        h('ul', { class: 'check-items' }, CHECKS.map((x) => h('li', null, h('button', { type: 'button', class: 'check-item' + (c[x[0]] ? ' done' : ''), role: 'checkbox', 'aria-checked': String(!!c[x[0]]), onclick: () => setCheck(x[0], !c[x[0]]) }, h('span', { class: 'box' }, c[x[0]] ? UI.icon('check', 14) : null), x[1]), x[0] === 'menu' ? h('a', { class: 'link', href: '#/admin/products' }, 'Ir a Mi carta →') : null)))
+      );
     }
 
     function drawPreview() {
@@ -285,15 +347,25 @@
         ...products.map((p) => h('div', { class: 'bp-item' }, h('div', null, h('b', null, p.name), h('span', { class: 'price' }, H.money(p.price))), UI.thumb(p, 44))),
         h('div', { class: 'bp-cart' }, h('span', null, '2'), 'Ver mi pedido', h('b', null, H.money(products[0] ? products[0].price * 2 : 0)))
       );
+      H.clear(qrHead).append(UI.brandLogo(s, 44), h('h2', null, s.name));
     }
 
     function drawChoices() {
       H.clear(palEl);
-      Data.palettes.forEach((p) => palEl.appendChild(h('button', { type: 'button', class: 'swatch' + (s.palette === p.key ? ' active' : ''), 'aria-pressed': s.palette === p.key, onclick: () => save({ palette: p.key }, true) }, h('span', { class: 'swatch-dot', style: { background: p.color } }), p.label)));
+      Data.palettes.forEach((p) => palEl.appendChild(h('button', { type: 'button', class: 'swatch' + (s.palette === p.key ? ' active' : ''), 'aria-pressed': String(s.palette === p.key), onclick: () => save({ palette: p.key }, true) }, h('span', { class: 'swatch-dot', style: { background: p.color } }), p.label)));
       H.clear(logoEl);
       LOGOS.forEach((e) => logoEl.appendChild(h('button', { type: 'button', class: 'logo-opt' + (!s.logoImage && s.logoEmoji === e ? ' active' : ''), 'aria-label': 'Logo ' + e, onclick: () => save({ logoEmoji: e, logoImage: null }) }, e)));
       H.clear(curEl);
       Object.keys(H.currencies).forEach((c) => curEl.appendChild(h('button', { type: 'button', class: 'chip' + (s.currency === c ? ' active' : ''), onclick: () => save({ currency: c }, true) }, H.currencies[c].symbol + ' ' + c)));
+    }
+
+    function drawTables() {
+      H.clear(tableWrap).appendChild(h('select', { 'aria-label': 'Mesa', onchange: (e) => { table = parseInt(e.target.value, 10); drawQR(); } }, Array.from({ length: s.tables }, (_, i) => h('option', { value: i + 1, selected: i + 1 === table }, 'Mesa ' + (i + 1)))));
+    }
+    function drawQR() {
+      H.renderQR(qrBox, H.appUrl('menu?mesa=' + table), 176);
+      qrLabel.textContent = 'Mesa ' + table;
+      api.setTable(table);
     }
 
     const text = (key, label, extra) => UI.field(label, h('input', Object.assign({ type: 'text', value: s[key] || '', oninput: (e) => save({ [key]: e.target.value }) }, extra || {})));
@@ -309,61 +381,42 @@
       }
     } });
 
-    const presetEl = h('div', { class: 'chips' }, Data.identityPresets.map((p) => h('button', { type: 'button', class: 'chip', onclick: async () => { await save({ name: p.name, tagline: p.tagline, logoEmoji: p.logoEmoji, logoImage: null, palette: p.palette }, true); UI.toast('Identidad: ' + p.name); } }, p.logoEmoji + ' ' + p.name)));
-
+    drawChecklist();
     drawPreview();
     drawChoices();
+    drawTables();
+    drawQR();
+    g.addEventListener('afterprint', () => document.body.classList.remove('printing-qr'));
+
     return h(
       'div',
       null,
-      pageHead('Mi marca', 'Nombre, logo, colores y moneda. Los cambios se ven al instante en la carta.'),
+      pageHead('Mi local', 'Tu marca, tus mesas y tus códigos QR en un solo lugar.'),
       h(
         'div',
         { class: 'brand-grid' },
         h(
           'div',
           { class: 'brand-forms' },
-          h('section', { class: 'card form-sec' }, h('h3', null, 'Identidad'), text('name', 'Nombre del negocio', { maxlength: '40' }), text('tagline', 'Descripción corta', { maxlength: '60' }), h('div', { class: 'field' }, h('span', { class: 'field-label' }, 'Logo'), logoEl, h('label', { class: 'btn btn-ghost btn-sm upload-btn' }, UI.icon('upload', 16), 'Subir mi logo', file), s.logoImage ? h('button', { class: 'btn btn-ghost btn-sm', type: 'button', onclick: () => save({ logoImage: null }).then(() => g.App.rerender()) }, 'Quitar imagen') : null, err)),
-          h('section', { class: 'card form-sec' }, h('h3', null, 'Colores'), palEl, h('p', { class: 'muted small' }, 'Cada paleta cambia botones, fondos y acentos de toda la carta.')),
-          h('section', { class: 'card form-sec' }, h('h3', null, 'Moneda'), curEl, h('p', { class: 'muted small' }, 'Los precios se guardan una vez y se muestran convertidos (demo con cotización fija).')),
-          h('section', { class: 'card form-sec' }, h('h3', null, 'Local'), text('address', 'Dirección'), text('hours', 'Horario'), UI.field('Cantidad de mesas', h('input', { type: 'number', min: '1', max: '60', value: s.tables, oninput: (e) => save({ tables: H.clamp(parseInt(e.target.value, 10) || 1, 1, 60) }) }))),
-          h('section', { class: 'card form-sec' }, h('h3', null, 'Probar otra identidad'), h('p', { class: 'muted small' }, 'Ejemplos de cómo se vería para distintos tipos de negocio.'), presetEl)
+          checkEl,
+          h('section', { class: 'card form-sec' }, h('h3', null, 'Logo y nombre'), text('name', 'Nombre del negocio', { maxlength: '40' }), text('tagline', 'Descripción corta', { maxlength: '60' }), h('div', { class: 'field' }, h('span', { class: 'field-label' }, 'Logo'), logoEl, h('div', { class: 'btn-row' }, h('label', { class: 'btn btn-ghost btn-sm upload-btn' }, UI.icon('upload', 16), 'Subir mi logo', file), s.logoImage ? h('button', { class: 'btn btn-ghost btn-sm', type: 'button', onclick: () => save({ logoImage: null }).then(() => g.App.rerender()) }, 'Quitar imagen') : null), err)),
+          h('section', { class: 'card form-sec' }, h('h3', null, 'Color'), palEl, h('p', { class: 'muted small' }, 'Cambia botones, fondos y acentos de toda la carta.')),
+          h(
+            'section',
+            { class: 'card form-sec' },
+            h('h3', null, 'Mesas y códigos QR'),
+            h('p', { class: 'muted small' }, 'Un QR por mesa: el cliente escanea y ve la carta con su mesa ya cargada.'),
+            h(
+              'div',
+              { class: 'qr-block' },
+              h('div', { class: 'qr-side' }, UI.field('Mesa', tableWrap), h('div', { class: 'btn-row' }, h('button', { class: 'btn btn-primary', type: 'button', onclick: () => { setCheck('qr', true); document.body.classList.add('printing-qr'); g.print(); } }, UI.icon('print', 16), 'Imprimir'), h('button', { class: 'btn btn-ghost', type: 'button', onclick: () => { const d = H.qrDataUrl(qrBox); if (d) { H.download(d, 'qr-mesa-' + table + '.png'); setCheck('qr', true); } } }, UI.icon('download', 16), 'Descargar'))),
+              h('div', { class: 'qr-print' }, qrHead, h('p', { class: 'muted small' }, 'Escaneá y pedí desde tu mesa'), qrBox, qrLabel)
+            )
+          ),
+          h('details', { class: 'card acc' }, h('summary', null, 'Datos del local y moneda'), h('div', { class: 'form-sec' }, text('address', 'Dirección'), text('hours', 'Horario'), UI.field('Cantidad de mesas', h('input', { type: 'number', min: '1', max: '60', value: s.tables, oninput: (e) => { save({ tables: H.clamp(parseInt(e.target.value, 10) || 1, 1, 60) }).then(() => { table = Math.min(table, s.tables); drawTables(); drawQR(); }); } })), h('div', { class: 'field' }, h('span', { class: 'field-label' }, 'Moneda'), curEl)))
         ),
         h('aside', { class: 'brand-side' }, h('h3', { class: 'side-title' }, 'Vista previa'), h('div', { class: 'phone-mini' }, preview))
       )
     );
-  };
-
-  // ------------------------------------------------------------------ Códigos QR
-  Screens.adminQR = async function () {
-    const s = await api.getSettings();
-    const st = { table: Math.min(await api.getTable(), s.tables) };
-    const qrBox = h('div', { class: 'qr-box qr-box-lg' });
-    const label = h('div', { class: 'qrp-table' });
-    const urlEl = h('code', { class: 'url' });
-    const select = h('select', { 'aria-label': 'Mesa', onchange: (e) => { st.table = parseInt(e.target.value, 10); draw(); } }, Array.from({ length: s.tables }, (_, i) => h('option', { value: i + 1, selected: i + 1 === st.table }, 'Mesa ' + (i + 1))));
-
-    function draw() {
-      const url = H.appUrl('menu?mesa=' + st.table);
-      H.renderQR(qrBox, url, 220);
-      label.textContent = 'Mesa ' + st.table;
-      urlEl.textContent = url;
-      api.setTable(st.table);
-    }
-
-    const root = h(
-      'div',
-      null,
-      pageHead('Códigos QR', 'Un QR por mesa: el cliente escanea y ve la carta con su mesa ya cargada.'),
-      h(
-        'div',
-        { class: 'qr-admin' },
-        h('section', { class: 'card form-sec qr-controls' }, h('h3', null, 'Generar'), UI.field('Mesa', select), h('p', { class: 'muted small' }, 'Apunta a:'), urlEl, h('div', { class: 'btn-row' }, h('button', { class: 'btn btn-primary', type: 'button', onclick: () => { document.body.classList.add('printing-qr'); g.print(); } }, UI.icon('print', 16), 'Imprimir'), h('button', { class: 'btn btn-ghost', type: 'button', onclick: () => { const d = H.qrDataUrl(qrBox); if (d) H.download(d, 'qr-mesa-' + st.table + '.png'); } }, UI.icon('download', 16), 'Descargar PNG')), h('a', { class: 'btn btn-ghost', href: '#/qr' }, UI.icon('scan', 16), 'Ver pantalla de escaneo')),
-        h('div', { class: 'qr-print-wrap' }, h('div', { class: 'qr-print' }, UI.brandLogo(s, 56), h('h2', null, s.name), h('p', { class: 'muted' }, 'Escaneá y pedí desde tu mesa'), qrBox, label, h('p', { class: 'small muted' }, 'Abrí la cámara de tu celular y apuntá al código')))
-      )
-    );
-    g.addEventListener('afterprint', () => document.body.classList.remove('printing-qr'));
-    draw();
-    return root;
   };
 })(window);
