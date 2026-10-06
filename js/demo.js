@@ -1,4 +1,4 @@
-/* Herramientas de presentación: barra de demo y datos de ejemplo para armar el recorrido solo. */
+/* Herramientas de presentación: barra superior, panel de opciones, guía del recorrido y datos de ejemplo. */
 (function (g) {
   const H = g.Helpers;
   const h = H.h;
@@ -6,6 +6,7 @@
   const api = g.Data.api;
   const Demo = (g.Demo = {});
 
+  // ------------------------------------------------------------------ Datos de ejemplo
   Demo.sampleCheckout = { customer: 'Camila Benítez', phone: '+595 981 234 567', type: 'mesa', payment: 'tarjeta', tipPct: 10, notes: '' };
   const SAMPLE_CART = [['chipa', 1, ''], ['milanesa', 2, 'Una sin jamón, por favor'], ['limonada', 2, ''], ['flan', 1, '']];
 
@@ -23,59 +24,135 @@
     return api.createOrder(Object.assign({}, Demo.sampleCheckout, { table: await api.getTable() }));
   };
 
-  const SCREENS = {
-    Cliente: [['qr', 'QR'], ['menu', 'Carta'], ['cart', 'Carrito'], ['checkout', 'Checkout'], ['confirm', 'Confirmación']],
-    Admin: [['admin', 'Panel'], ['admin/products', 'Productos'], ['admin/orders', 'Pedidos'], ['admin/brand', 'Marca'], ['admin/qr', 'QR mesas']],
-    Presentar: [['live', '⚡ En vivo']],
-  };
+  // Pantallas sueltas (panel de Opciones). Carrito, checkout y confirmación se preparan solos.
+  const SCREENS = [
+    ['Cliente', [['qr', 'Escaneo del QR'], ['menu', 'Carta'], ['cart', 'Carrito'], ['checkout', 'Finalizar pedido'], ['confirm', 'Pedido confirmado']]],
+    ['Negocio', [['admin', 'Resumen'], ['admin/orders', 'Pedidos del local'], ['admin/products', 'Mi carta'], ['admin/brand', 'Personalizar'], ['admin/qr', 'Códigos QR']]],
+    ['Para vender', [['live', 'Vista en vivo'], ['value', 'Cuánto te deja']]],
+  ];
+  const TABS = [
+    ['Cliente', 'qr', (p) => ['qr', 'menu', 'cart', 'checkout', 'confirm'].indexOf(p) !== -1],
+    ['Negocio', 'admin', (p) => p.indexOf('admin') === 0],
+    ['En vivo', 'live', (p) => p === 'live'],
+    ['Valor', 'value', (p) => p === 'value'],
+  ];
 
-  async function goTo(route) {
+  async function prepare(route) {
     if (route === 'cart' || route === 'checkout') await Demo.ensureCart();
     if (route === 'confirm') await Demo.ensureOrder();
-    g.App.go(route);
+  }
+  /** Salta a una pantalla suelta: sale del recorrido y pasa a modo libre. */
+  async function jump(route) {
+    await prepare(route);
+    g.App.explore(route);
   }
 
-  Demo.renderBar = function (bar) {
+  const ctaUrl = () => H.whatsappUrl((g.Config || {}).sellerWhatsapp, (g.Config || {}).ctaMessage);
+
+  // ------------------------------------------------------------------ Barra superior
+  let optsOpen = false;
+
+  function renderBar() {
     const App = g.App;
-    const group = (label, children) => h('div', { class: 'db-group' }, h('span', { class: 'db-label' }, label), children);
+    const bar = document.getElementById('demobar');
+    const parts = [h('button', { class: 'db-brand', type: 'button', 'aria-label': 'Ir al inicio', onclick: () => App.go('start') }, h('span', { class: 'db-logo' }, '▣'), h('b', null, 'Carta digital QR'))];
 
-    const screenBtns = (name) => group(name, SCREENS[name].map((s) => h('button', { type: 'button', class: 'db-btn', 'data-route': s[0], onclick: () => goTo(s[0]) }, s[1])));
+    if (App.mode === 'tour') {
+      parts.push(h('nav', { class: 'db-steps', 'aria-label': 'Pasos del recorrido' }, g.Tour.steps.map((st, i) => h('button', { type: 'button', class: 'db-step' + (i === App.step ? ' active' : i < App.step ? ' done' : ''), 'aria-label': 'Paso ' + (i + 1) + ': ' + st.title, 'aria-current': i === App.step ? 'step' : null, onclick: () => App.goStep(i) }, i + 1))));
+    } else if (App.mode === 'free') {
+      parts.push(h('nav', { class: 'db-tabs', 'aria-label': 'Secciones' }, TABS.map((t) => h('button', { type: 'button', class: 'db-tab' + (t[2](App.path) ? ' active' : ''), onclick: () => jump(t[1]) }, t[0]))), h('button', { type: 'button', class: 'db-tour', onclick: () => App.startTour() }, '▶ Recorrido'));
+    }
 
-    const palettes = group('Paleta', g.Data.palettes.map((p) => h('button', { type: 'button', class: 'db-dot', 'data-palette': p.key, title: p.label, 'aria-label': 'Paleta ' + p.label, style: { background: p.color }, onclick: () => App.updateSettings({ palette: p.key }) })));
+    parts.push(h('span', { class: 'db-spacer' }), h('a', { class: 'db-cta', href: ctaUrl(), target: '_blank', rel: 'noopener', 'aria-label': 'Quiero mi carta' }, UI.icon('whatsapp', 16), h('span', null, 'Quiero mi carta')), h('button', { type: 'button', class: 'db-opts-btn', 'aria-expanded': String(optsOpen), 'aria-controls': 'opts', onclick: toggleOpts }, UI.icon('sliders', 16), h('span', null, 'Opciones')));
+    H.clear(bar).append(...parts);
+  }
 
-    const business = h('select', { class: 'db-select', 'aria-label': 'Negocio de ejemplo', onchange: (e) => {
-      const p = g.Data.identityPresets.find((x) => x.key === e.target.value);
-      if (p) App.updateSettings({ name: p.name, tagline: p.tagline, logoEmoji: p.logoEmoji, logoImage: null, palette: p.palette });
-      e.target.value = '';
-    } }, [h('option', { value: '' }, 'Negocio…')].concat(g.Data.identityPresets.map((p) => h('option', { value: p.key }, p.logoEmoji + ' ' + p.name))));
+  // ------------------------------------------------------------------ Guía del recorrido (barra inferior)
+  function renderCoach() {
+    const App = g.App;
+    const coach = document.getElementById('coach');
+    const on = App.mode === 'tour';
+    document.body.classList.toggle('has-coach', on);
+    coach.hidden = !on;
+    if (!on) return;
+    const steps = g.Tour.steps;
+    const st = steps[App.step];
+    const last = App.step === steps.length - 1;
+    H.clear(coach).append(
+      h('div', { class: 'coach-info' }, h('div', { class: 'coach-meta' }, h('span', { class: 'coach-who' }, g.Tour.who[st.who]), h('span', null, 'Paso ' + (App.step + 1) + ' de ' + steps.length)), h('b', null, st.title), h('p', null, st.text)),
+      h(
+        'div',
+        { class: 'coach-actions' },
+        h('button', { class: 'coach-link', type: 'button', onclick: () => App.explore(st.route) }, 'Explorar libre'),
+        h('button', { class: 'btn btn-ghost btn-sm', type: 'button', onclick: () => (App.step ? App.goStep(App.step - 1) : App.go('start')) }, '← Atrás'),
+        last ? h('a', { class: 'btn btn-wa btn-sm', href: ctaUrl(), target: '_blank', rel: 'noopener' }, UI.icon('whatsapp', 16), 'Quiero mi carta') : h('button', { class: 'btn btn-primary btn-sm', type: 'button', onclick: () => App.goStep(App.step + 1) }, 'Siguiente →')
+      )
+    );
+  }
 
-    const currency = h('select', { class: 'db-select db-currency', 'aria-label': 'Moneda', onchange: (e) => App.updateSettings({ currency: e.target.value }) }, Object.keys(H.currencies).map((c) => h('option', { value: c }, H.currencies[c].symbol + ' ' + c)));
+  // ------------------------------------------------------------------ Panel de opciones
+  function toggleOpts() {
+    optsOpen = !optsOpen;
+    renderOpts();
+    renderBar();
+  }
+  function closeOpts() {
+    if (!optsOpen) return;
+    optsOpen = false;
+    renderOpts();
+    renderBar();
+  }
 
-    const view = h('div', { class: 'db-seg', role: 'group', 'aria-label': 'Vista' }, [['mobile', 'phone', 'Móvil'], ['desktop', 'desktop', 'PC']].map((v) => h('button', { type: 'button', class: 'db-seg-btn', 'data-view': v[0], 'aria-label': 'Vista ' + v[2], title: v[2], onclick: () => App.setView(v[0]) }, UI.icon(v[1], 16), h('span', null, v[2]))));
+  function renderOpts() {
+    const App = g.App;
+    const panel = document.getElementById('opts');
+    panel.hidden = !optsOpen;
+    if (!optsOpen) return H.clear(panel);
+    const s = App.settings;
+    const sec = (title, body) => h('section', { class: 'opts-sec' }, h('h4', null, title), body);
 
-    const reset = h('button', { type: 'button', class: 'db-reset', onclick: async () => {
-      await api.reset();
-      App.settings = await api.getSettings();
-      App.applySettings(App.settings, false);
-      UI.toast('Demo reiniciada');
-      goTo('qr');
-    } }, UI.icon('refresh', 16), 'Reiniciar demo');
+    const kinds = g.Data.identityPresets.map((k) => h('button', { type: 'button', class: 'chip' + (k.name === s.name ? ' active' : ''), onclick: () => App.updateSettings({ name: k.name, tagline: k.tagline, logoEmoji: k.logoEmoji, logoImage: null, palette: k.palette }) }, k.logoEmoji + ' ' + k.kind));
+    const pals = g.Data.palettes.map((p) => h('button', { type: 'button', class: 'swatch' + (s.palette === p.key ? ' active' : ''), 'aria-pressed': String(s.palette === p.key), onclick: () => App.updateSettings({ palette: p.key }) }, h('span', { class: 'swatch-dot', style: { background: p.color } }), p.label));
+    const curs = Object.keys(H.currencies).map((c) => h('button', { type: 'button', class: 'chip' + (s.currency === c ? ' active' : ''), onclick: () => App.updateSettings({ currency: c }) }, H.currencies[c].symbol + ' ' + c));
+    const views = h('div', { class: 'segmented' }, [['mobile', 'phone', 'Móvil'], ['desktop', 'desktop', 'PC']].map((v) => h('button', { type: 'button', class: App.view === v[0] ? 'active' : '', onclick: () => { App.setView(v[0]); renderOpts(); } }, UI.icon(v[1], 16), ' ' + v[2])));
+    const screens = SCREENS.map((grp) => h('div', { class: 'opts-screens' }, h('small', null, grp[0]), h('div', null, grp[1].map((r) => h('button', { type: 'button', class: 'chip', onclick: () => { closeOpts(); jump(r[0]); } }, r[1])))));
 
-    const C = g.Config || {};
-    const cta = h('a', { class: 'db-cta', href: H.whatsappUrl(C.sellerWhatsapp, C.ctaMessage), target: '_blank', rel: 'noopener' }, UI.icon('whatsapp', 16), 'Quiero mi carta');
+    H.clear(panel).append(
+      h('div', { class: 'opts-head' }, h('b', null, 'Opciones de la demo'), h('button', { class: 'icon-btn', type: 'button', 'aria-label': 'Cerrar opciones', onclick: closeOpts }, UI.icon('close', 18))),
+      sec('Tipo de local', h('div', { class: 'chips chips-wrap-inline' }, kinds)),
+      sec('Paleta de colores', h('div', { class: 'palette-grid' }, pals)),
+      sec('Moneda', h('div', { class: 'chips chips-wrap-inline' }, curs)),
+      sec('Vista', views),
+      sec('Ir a una pantalla', h('div', null, screens)),
+      h('button', { class: 'btn btn-ghost btn-block', type: 'button', onclick: async () => {
+        await api.reset();
+        closeOpts();
+        await App.applySettings(await api.getSettings(), false);
+        UI.toast('Demo reiniciada');
+        App.go('start');
+      } }, UI.icon('refresh', 16), 'Reiniciar demo')
+    );
+  }
 
-    H.clear(bar).append(h('div', { class: 'db-brand' }, h('span', { class: 'db-logo' }, '▣'), h('b', null, 'Demo')), cta, screenBtns('Cliente'), screenBtns('Admin'), screenBtns('Presentar'), palettes, group('Negocio', [business, currency]), group('Vista', view), reset);
-    Demo.syncBar();
+  // ------------------------------------------------------------------ API pública
+  Demo.refresh = function () {
+    if (g.App.embed || !g.App.settings) return;
+    renderBar();
+    renderCoach();
+    if (optsOpen) renderOpts();
   };
 
-  /** Refleja el estado actual (ruta, paleta, moneda, vista) en los controles de la barra. */
-  Demo.syncBar = function () {
-    const App = g.App;
-    if (!App.settings) return;
-    document.querySelectorAll('.db-btn').forEach((b) => b.classList.toggle('active', b.dataset.route === App.path));
-    document.querySelectorAll('.db-dot').forEach((b) => b.classList.toggle('active', b.dataset.palette === App.settings.palette));
-    document.querySelectorAll('.db-seg-btn').forEach((b) => b.classList.toggle('active', b.dataset.view === App.view));
-    const cur = document.querySelector('.db-currency');
-    if (cur) cur.value = App.settings.currency;
+  Demo.init = function () {
+    // Cerrar opciones al hacer clic afuera o con Escape; flechas para avanzar/retroceder el recorrido.
+    document.addEventListener('mousedown', (e) => {
+      if (optsOpen && !e.target.closest('#opts') && !e.target.closest('.db-opts-btn')) closeOpts();
+    });
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') return closeOpts();
+      const typing = /^(INPUT|TEXTAREA|SELECT)$/.test((e.target || {}).tagName) || (e.target && e.target.isContentEditable);
+      if (typing || e.altKey || e.ctrlKey || e.metaKey || g.App.mode !== 'tour' || document.querySelector('.overlay')) return;
+      if (e.key === 'ArrowRight') g.App.goStep(g.App.step + 1);
+      if (e.key === 'ArrowLeft' && g.App.step > 0) g.App.goStep(g.App.step - 1);
+    });
   };
 })(window);

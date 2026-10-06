@@ -3,11 +3,11 @@
   const Data = (g.Data = g.Data || {});
 
   Data.identityPresets = [
-    { key: 'esquina', name: 'La Esquina de Mateo', tagline: 'Cocina casera · Parrilla · Pizzas', logoEmoji: '🔥', palette: 'brasa' },
-    { key: 'verde', name: 'Verde Bistró', tagline: 'Cocina fresca y de estación', logoEmoji: '🌿', palette: 'bosque' },
-    { key: 'puerto', name: 'Puerto Azul', tagline: 'Pescados, mariscos y tragos', logoEmoji: '⚓', palette: 'oceano' },
-    { key: 'uva', name: 'Maison Uva', tagline: 'Café de especialidad y pastelería', logoEmoji: '🍇', palette: 'uva' },
-    { key: 'noche', name: 'Noche Dorada', tagline: 'Bar · Tapas · Coctelería', logoEmoji: '🥂', palette: 'noche' },
+    { key: 'esquina', kind: 'Parrilla y pizzería', name: 'La Esquina de Mateo', tagline: 'Cocina casera · Parrilla · Pizzas', logoEmoji: '🔥', palette: 'brasa' },
+    { key: 'verde', kind: 'Cocina saludable', name: 'Verde Bistró', tagline: 'Cocina fresca y de estación', logoEmoji: '🌿', palette: 'bosque' },
+    { key: 'puerto', kind: 'Pescados y mariscos', name: 'Puerto Azul', tagline: 'Pescados, mariscos y tragos', logoEmoji: '⚓', palette: 'oceano' },
+    { key: 'uva', kind: 'Café y pastelería', name: 'Maison Uva', tagline: 'Café de especialidad y pastelería', logoEmoji: '🍇', palette: 'uva' },
+    { key: 'noche', kind: 'Bar de tapas', name: 'Noche Dorada', tagline: 'Bar · Tapas · Coctelería', logoEmoji: '🥂', palette: 'noche' },
   ];
 
   Data.palettes = [
